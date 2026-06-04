@@ -1,0 +1,382 @@
+<!doctype html><html>
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Voiddeck ENV</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 20px; background: #fff; color: #111; }
+  @media (prefers-color-scheme: dark) { body { background: #111; color: #eee; } }
+  .wrap { max-width: 820px; }
+  h1 { font-size: 1rem; font-weight: 500; margin: 0 0 4px; }
+  h2 { font-size: 0.85rem; font-weight: 500; margin: 24px 0 8px; color: #555; }
+  @media (prefers-color-scheme: dark) { h2 { color: #aaa; } }
+  .sub { font-size: 0.8rem; color: #888; margin-bottom: 20px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
+  .card { background: #f5f5f5; border-radius: 8px; padding: 12px 14px; }
+  @media (prefers-color-scheme: dark) { .card { background: #1e1e1e; } }
+  .card-label { font-size: 11px; color: #888; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .big { font-size: 28px; font-weight: 500; line-height: 1.1; }
+  .unit { font-size: 11px; color: #888; }
+  .status { font-size: 11px; color: #888; margin-top: 6px; }
+  .t-color { color: #c0392b; }
+  .h-color { color: #16a085; }
+  .chart-wrap { margin-bottom: 20px; }
+  .legend { display: flex; gap: 16px; font-size: 12px; color: #888; margin-bottom: 8px; }
+  .leg-dot { width: 24px; height: 3px; display: inline-block; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px; }
+  th { text-align: left; padding: 6px 4px; border-bottom: 1px solid #ddd; font-weight: 400; color: #888; font-size: 11px; text-transform: uppercase; }
+  td { padding: 7px 4px; border-bottom: 1px solid #eee; vertical-align: top; }
+  @media (prefers-color-scheme: dark) { th, td { border-color: #333; } }
+  tr.active-row td { background: #fff8e1; font-weight: 500; }
+  @media (prefers-color-scheme: dark) { tr.active-row td { background: #2a2200; } }
+  tr.active-row td:first-child { border-left: 3px solid #e67e22; padding-left: 1px; }
+  .bar-cell { width: 100px; }
+  .bar-bg { background: #eee; border-radius: 4px; height: 8px; overflow: hidden; margin-top: 4px; }
+  @media (prefers-color-scheme: dark) { .bar-bg { background: #333; } }
+  .bar-fill { height: 8px; border-radius: 4px; transition: width 0.4s; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Voiddeck ENV Monitor</h1>
+  <div class="sub" id="date">--</div>
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">Temperature</div>
+      <div id="t" class="big t-color">--.-</div>
+      <div class="unit">°C</div>
+      <div class="status" id="msg">starting…</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Humidity</div>
+      <div id="h" class="big h-color">--.-</div>
+      <div class="unit">%</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Clock (SGT)</div>
+      <div id="clk" class="big">--:--:--</div>
+      <div class="unit" id="date2">--</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Last hr avg</div>
+      <div id="avgT" class="big t-color">--.-</div>
+      <div class="unit">°C</div>
+      <div id="avgH" class="big h-color">--.-</div>
+      <div class="unit">%</div>
+      <div class="status" id="avgMeta">waiting…</div>
+    </div>
+  </div>
+
+  <div class="chart-wrap">
+    <div class="legend">
+      <span><span class="leg-dot" style="background:#c0392b;"></span>Temp °C (left)</span>
+      <span><span class="leg-dot" style="background:#16a085; border-top: 2px dashed #16a085; height:0; display:inline-block; width:24px; vertical-align:middle;"></span>Humidity % (right)</span>
+    </div>
+    <div style="position:relative; width:100%; height:220px;">
+      <canvas id="histChart" role="img" aria-label="Line chart of hourly average temperature and humidity">No data yet.</canvas>
+    </div>
+  </div>
+<div class="cards" style="margin-top:10px;">
+  <div class="card">
+    <div class="card-label">Temperature Status</div>
+    <div id="tempHighlight">Waiting for data…</div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Humidity Status</div>
+    <div id="humHighlight">Waiting for data…</div>
+  </div>
+</div>
+
+  <table>
+    <thead><tr><th>Hour (SGT)</th><th class="t-color">Avg Temp °C</th><th class="h-color">Avg Hum %</th></tr></thead>
+    <tbody id="histTbody"></tbody>
+  </table>
+<!-- Current highlights -->
+
+
+<!-- Temperature guide -->
+<details style="margin-top:20px;">
+  <summary style="cursor:pointer; font-size:0.9rem; color:#666;">
+    Temperature guide — bedroom context
+  </summary>
+
+  <table id="tempGuide" style="margin-top:10px;">
+    <thead>
+      <tr>
+        <th>Range</th>
+        <th>Feel</th>
+        <th>Indoor context</th>
+        <th>vs. outside</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr data-tmin="0" data-tmax="22">
+        <td>Below 22°C</td>
+        <td>Cool</td>
+        <td>Air-con running cold, or early morning before sunrise</td>
+        <td>Rare outside at night — Singapore rarely dips below 23°C even at 3am</td>
+      </tr>
+
+      <tr data-tmin="22" data-tmax="25">
+        <td>22 – 25°C</td>
+        <td>Comfortable</td>
+        <td>Ideal sleep temperature. Air-con set to 23–25°C achieves this</td>
+        <td>Outside at this temp = light rain just happened or 5–6am pre-dawn. Room is cooler than outdoors</td>
+      </tr>
+
+      <tr data-tmin="25" data-tmax="28">
+        <td>25 – 28°C</td>
+        <td>Warm, neutral</td>
+        <td>Air-con off but fan on, or air-con set high. Feels neutral if humidity is low</td>
+        <td>Outside at this range = overcast afternoon or post-rain. Room is roughly matching outdoors</td>
+      </tr>
+
+      <tr data-tmin="28" data-tmax="31">
+        <td>28 – 31°C</td>
+        <td>Warm, stuffy</td>
+        <td>No airflow, fan not enough. Sticky if humidity is above 70%</td>
+        <td>Outside at this temp = typical sunny afternoon. Room is at outdoor daytime level — no insulation benefit</td>
+      </tr>
+
+      <tr data-tmin="31" data-tmax="99">
+        <td>Above 31°C</td>
+        <td>Hot</td>
+        <td>Unventilated room with windows shut mid-day. Air feels thick</td>
+        <td>Hotter than a shaded outdoor spot — heat is trapped. Open windows or turn on air-con immediately</td>
+      </tr>
+    </tbody>
+  </table>
+</details>
+
+<!-- Humidity guide -->
+<details style="margin-top:14px;">
+  <summary style="cursor:pointer; font-size:0.9rem; color:#666;">
+    Humidity guide — bedroom context
+  </summary>
+
+  <table id="humGuide" style="margin-top:10px;">
+    <thead>
+      <tr>
+        <th>Range</th>
+        <th>Feel</th>
+        <th>Indoor context</th>
+        <th>vs. outside</th>
+        <th class="bar-cell">Level</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <tr data-hmin="0" data-hmax="40">
+        <td>Below 40%</td>
+        <td>Dry</td>
+        <td>Air-con has been running a long time. Throat and skin may feel dry. Unusual for SG</td>
+        <td>Outside is almost never this dry in Singapore — room is drier than any outdoor condition here</td>
+        <td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:20%; background:#3498db;"></div></div></td>
+      </tr>
+
+      <tr data-hmin="40" data-hmax="60">
+        <td>40 – 60%</td>
+        <td>Comfortable</td>
+        <td>Ideal sleep range. Air-con achieves this. Feels fresh, no stickiness</td>
+        <td>Outside only hits this during dry northeast monsoon (Dec–Feb) on clear days. Room is much drier than typical outdoors</td>
+        <td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:50%; background:#2ecc71;"></div></div></td>
+      </tr>
+
+      <tr data-hmin="60" data-hmax="70">
+        <td>60 – 70%</td>
+        <td>Slightly humid</td>
+        <td>Fan mode or light air-con. Noticeable but not uncomfortable if temperature is below 27°C</td>
+        <td>Matches outdoor conditions on a cloudy morning or just after rain. Room humidity is equalising with outside</td>
+        <td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:65%; background:#f1c40f;"></div></div></td>
+      </tr>
+
+      <tr data-hmin="70" data-hmax="80">
+        <td>70 – 80%</td>
+        <td>Humid</td>
+        <td>Windows open during daytime. Sweat does not evaporate well. Feels muggy above 28°C</td>
+        <td>Typical Singapore outdoor daytime humidity. Room has fully equalised with outside — no insulation benefit</td>
+        <td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:75%; background:#e67e22;"></div></div></td>
+      </tr>
+
+      <tr data-hmin="80" data-hmax="999">
+        <td>Above 80%</td>
+        <td>Very humid</td>
+        <td>During or just after heavy rain with windows open. Everything feels damp. Mould risk if sustained</td>
+        <td>Matches outdoor air during active rainfall. Room is absorbing outdoor humidity — close windows</td>
+        <td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:90%; background:#e74c3c;"></div></div></td>
+      </tr>
+    </tbody>
+  </table>
+</details>
+
+</div>
+
+<script>
+let serverEpochMs = 0, localNowAtFetch = 0;
+let liveT = NaN, liveH = NaN;
+function fmt(n,d=1){ return (n==null||isNaN(n))?"--.-":n.toFixed(d); }
+function setClockFromServer(ms){ serverEpochMs=ms; localNowAtFetch=Date.now(); }
+
+const histChart = new Chart(document.getElementById('histChart'), {
+  type: 'line',
+  data: { labels: [], datasets: [
+    {
+      label: 'Temp °C', data: [], yAxisID: 'yT',
+      borderColor: '#c0392b', backgroundColor: 'rgba(192,57,43,0.06)',
+      tension: 0.3, pointRadius: 4, fill: true, borderDash: []
+    },
+    {
+      label: 'Humidity %', data: [], yAxisID: 'yH',
+      borderColor: '#16a085', backgroundColor: 'rgba(22,160,133,0.06)',
+      tension: 0.3, pointRadius: 4, fill: true, borderDash: [5,3]
+    }
+  ]},
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: { legend: { display: false } },
+    scales: {
+      x: {
+        ticks: { color: '#888', font: { size: 11 }, autoSkip: false, maxRotation: 45 },
+        grid: { color: 'rgba(128,128,128,0.15)' }
+      },
+      yT: {
+        type: 'linear', position: 'left',
+        min: 20, max: 40,
+        ticks: { color: '#c0392b', font: { size: 11 }, callback: v => v.toFixed(0)+'°' },
+        grid: { color: 'rgba(128,128,128,0.15)' },
+        title: { display: true, text: '°C', color: '#c0392b', font: { size: 11 } }
+      },
+      yH: {
+        type: 'linear', position: 'right',
+        min: 40, max: 100,
+        ticks: { color: '#16a085', font: { size: 11 }, callback: v => v.toFixed(0)+'%' },
+        grid: { drawOnChartArea: false },
+        title: { display: true, text: '%', color: '#16a085', font: { size: 11 } }
+      }
+    }
+  }
+});
+
+function highlightGuide(tableId, val, minAttr, maxAttr) {
+  if (isNaN(val)) return;
+
+  let activeText = '';
+
+  document.querySelectorAll(`#${tableId} tbody tr`).forEach(tr => {
+    const lo = parseFloat(tr.dataset[minAttr]);
+    const hi = parseFloat(tr.dataset[maxAttr]);
+
+    const active = val >= lo && val < hi;
+    tr.classList.toggle('active-row', active);
+
+    if (active) {
+      const cells = tr.querySelectorAll('td');
+
+      activeText = `
+        <div style="font-weight:600; margin-bottom:4px;">
+          ${cells[0].textContent}
+        </div>
+        <div style="color:#888; font-size:12px;">
+          ${cells[1].textContent}
+        </div>
+      `;
+    }
+  });
+
+  if (tableId === 'tempGuide') {
+    document.getElementById('tempHighlight').innerHTML = activeText;
+  }
+
+  if (tableId === 'humGuide') {
+    document.getElementById('humHighlight').innerHTML = activeText;
+  }
+}
+
+function tickClock(){
+  if(!serverEpochMs) return;
+  const nowMs = serverEpochMs + (Date.now() - localNowAtFetch);
+  const d = new Date(nowMs);
+  const pad = n => String(n).padStart(2,'0');
+  document.getElementById('clk').textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  const ds = d.toLocaleDateString(undefined,{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+  document.getElementById('date').textContent = ds;
+  document.getElementById('date2').textContent = ds;
+}
+setInterval(tickClock, 250);
+
+async function refreshLive(){
+  try{
+    const j = await fetch('/diag?x='+Date.now()).then(r=>r.json());
+    if(j.ok){
+      liveT = j.temp; liveH = j.humidity;
+      document.getElementById('t').textContent = fmt(j.temp);
+      document.getElementById('h').textContent = fmt(j.humidity);
+      document.getElementById('msg').textContent = `tries=${j.tries} · ${(j.ms/1000).toFixed(1)}s ago`;
+      highlightGuide('tempGuide', liveT, 'tmin', 'tmax');
+      highlightGuide('humGuide',  liveH, 'hmin', 'hmax');
+    } else {
+      document.getElementById('msg').textContent = `read failed (tries=${j.tries})`;
+    }
+  }catch(e){ document.getElementById('msg').textContent='request failed'; }
+}
+setInterval(refreshLive, 2000);
+
+async function refreshClock(){
+  try{
+    const j = await fetch('/time?x='+Date.now()).then(r=>r.json());
+    if(j.ok) setClockFromServer(j.epoch_ms);
+  }catch(e){}
+}
+setInterval(refreshClock, 10000);
+
+async function refreshHistory(){
+  try{
+    const j = await fetch('/history?x='+Date.now()).then(r=>r.json());
+    const tb = document.getElementById('histTbody');
+    tb.innerHTML = '';
+    if(j.ok && j.items && j.items.length){
+      const first = j.items[0];
+      document.getElementById('avgT').textContent = fmt(first.avgT);
+      document.getElementById('avgH').textContent = fmt(first.avgH);
+      const d = new Date(first.hour_start_ms);
+      document.getElementById('avgMeta').textContent = 'hr @ ' + d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+
+      const ordered = [...j.items].reverse();
+      const temps = ordered.map(it=>it.avgT);
+      const hums  = ordered.map(it=>it.avgH);
+      const tMin = Math.floor(Math.min(...temps) - 2);
+      const tMax = Math.ceil(Math.max(...temps) + 2);
+      const hMin = Math.floor(Math.min(...hums) - 5);
+      const hMax = Math.ceil(Math.max(...hums) + 5);
+      histChart.options.scales.yT.min = tMin;
+      histChart.options.scales.yT.max = tMax;
+      histChart.options.scales.yH.min = hMin;
+      histChart.options.scales.yH.max = hMax;
+
+      histChart.data.labels = ordered.map(it => {
+        const d = new Date(it.hour_start_ms);
+        return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+      });
+      histChart.data.datasets[0].data = temps;
+      histChart.data.datasets[1].data = hums;
+      histChart.update();
+
+      j.items.forEach(it => {
+        const tr = document.createElement('tr');
+        const dt = new Date(it.hour_start_ms);
+        tr.innerHTML = `<td>${dt.toLocaleString()}</td><td class="t-color">${fmt(it.avgT,2)}</td><td class="h-color">${fmt(it.avgH,2)}</td>`;
+        tb.appendChild(tr);
+      });
+    } else {
+      document.getElementById('avgMeta').textContent = 'no completed hour yet';
+    }
+  }catch(e){}
+}
+setInterval(refreshHistory, 10000);
+
+refreshClock(); refreshLive(); refreshHistory();
+</script>
+</body></html>

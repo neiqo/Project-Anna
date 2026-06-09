@@ -8,6 +8,9 @@
 #include "sensor/DHTSensor.h"
 #include "storage/HistoricalData.h"
 #include "server/WebServer.h"
+#include "display/OLEDDisplay.h"
+
+OLEDDisplay oled;
 
 // ─── Globals ───────────────────────────────────────────────────────────────
 DHTSensor      sensor(DHTPIN, DHTTYPE);
@@ -58,6 +61,7 @@ void setup() {
     pinMode(DHTPIN, INPUT_PULLUP);
     sensor.begin();
     history.begin();
+    oled.begin();
 
     connectWiFi();
     setupMDNS();
@@ -74,6 +78,11 @@ void loop() {
         if (!warmedUp) { delay(1500); warmedUp = true; }
 
         sensor.read();
+        oled.showReadings(
+            sensor.temp,
+            sensor.humidity,
+            sensor.ok
+        );
         history.tick(time(nullptr), sensor.temp, sensor.humidity);
 
         lastReadMs = nowMs;

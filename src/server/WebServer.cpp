@@ -10,22 +10,22 @@
 // not buried in main.cpp
 static const char HTML[] PROGMEM = HTML_CONTENT;
 
-// ─── VoiddeckServer ────────────────────────────────────────────────────────
+// ─── ANNAServer ────────────────────────────────────────────────────────
 
-VoiddeckServer::VoiddeckServer(DHTSensor &sensor, HistoricalData &history)
+ANNAServer::ANNAServer(DHTSensor &sensor, HistoricalData &history)
     : _server(80), _sensor(sensor), _history(history) {}
 
-void VoiddeckServer::begin() {
+void ANNAServer::begin() {
     _registerRoutes();
     _server.begin();
     Serial.println("[server] HTTP started on port 80");
 }
 
-void VoiddeckServer::handle() {
+void ANNAServer::handle() {
     _server.handleClient();
 }
 
-void VoiddeckServer::_registerRoutes() {
+void ANNAServer::_registerRoutes() {
     // Root — serve the dashboard
     _server.on("/", HTTP_GET, [this]() {
         _server.send_P(200, "text/html; charset=utf-8", HTML);

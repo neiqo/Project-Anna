@@ -15,7 +15,7 @@ OLEDDisplay oled;
 // ─── Globals ───────────────────────────────────────────────────────────────
 DHTSensor      sensor(DHTPIN, DHTTYPE);
 HistoricalData history;
-VoiddeckServer server(sensor, history);
+ANNAServer server(sensor, history);
 
 unsigned long lastReadMs = 0;
 bool          warmedUp   = false;
@@ -56,7 +56,7 @@ static void syncTime() {
 // ─── Arduino entry points ──────────────────────────────────────────────────
 void setup() {
     Serial.begin(115200); delay(200);
-    Serial.println("\n[boot] voiddeck starting");
+    Serial.println("\n[boot] anna starting");
 
     pinMode(DHTPIN, INPUT_PULLUP);
     sensor.begin();

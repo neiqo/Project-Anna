@@ -1,7 +1,7 @@
 #pragma once
 
 // ===== Network =====
-#define HOSTNAME "voiddeck"
+#define HOSTNAME "anna"
 
 // ===== DHT sensor =====
 #define DHTPIN   26

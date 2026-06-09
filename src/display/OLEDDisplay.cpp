@@ -12,7 +12,7 @@ void OLEDDisplay::begin() {
     display.setTextSize(1);
 
     display.setCursor(0, 0);
-    display.println("VoidDeck Starting...");
+    display.println("ANNA Starting...");
     display.display();
 }
 
@@ -20,7 +20,7 @@ void OLEDDisplay::showReadings(float temp, float humidity, bool ok) {
     display.clearDisplay();
 
     display.setCursor(0, 0);
-    display.println("DHT Sensor");
+    display.println("ANNA Sensor");
 
     if (ok) {
         display.setCursor(0, 20);

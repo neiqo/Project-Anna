@@ -3,9 +3,9 @@
 #include "../sensor/DHTSensor.h"
 #include "../storage/HistoricalData.h"
 
-class VoiddeckServer {
+class ANNAServer {
 public:
-    VoiddeckServer(DHTSensor &sensor, HistoricalData &history);
+    ANNAServer(DHTSensor &sensor, HistoricalData &history);
 
     void begin();
     void handle();   // call in loop()

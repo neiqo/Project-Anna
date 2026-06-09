@@ -1,6 +1,7 @@
-# Room Environment Monitor
+# ANNA
+Ambient Nvironmental Notification and Analytics
 
-RoomMonitor is an ESP32-based room monitoring system that tracks indoor temperature and humidity, stores historical measurements, and presents the data through both a web dashboard and a local OLED display.
+ANNA is an ESP32-based room monitoring system that tracks indoor temperature and humidity, stores historical measurements, and presents the data through both a web dashboard and a local OLED display.
 
 The system is designed to provide an at-a-glance view of room conditions while also allowing long-term trend analysis through automatically generated statistics and charts.
 
@@ -112,7 +113,7 @@ The device supports:
 The dashboard can be accessed using:
 
 ```text
-http://voiddeck.local
+http://anna.local
 ```
 
 or directly through the ESP32's IP address.
@@ -164,4 +165,4 @@ Planned functionality includes:
 
 ## Project Goal
 
-The goal of VoidDeck is to create a lightweight and extensible room monitoring platform that provides both immediate environmental feedback and long-term insights through historical data analysis, while remaining simple enough to run entirely on an ESP32.
+The goal of ANNA is to create a lightweight and extensible room monitoring platform that provides both immediate environmental feedback and long-term insights through historical data analysis, while remaining simple enough to run entirely on an ESP32.

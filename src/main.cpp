@@ -9,8 +9,10 @@
 #include "storage/HistoricalData.h"
 #include "server/WebServer.h"
 #include "display/OLEDDisplay.h"
+#include "prayertiming/prayTime.h"
 
-OLEDDisplay oled;
+prayTime prayTimes;
+OLEDDisplay oled(prayTimes);
 
 // ─── Globals ───────────────────────────────────────────────────────────────
 DHTSensor      sensor(DHTPIN, DHTTYPE);
@@ -53,6 +55,12 @@ static void syncTime() {
     Serial.println(" timed out");
 }
 
+void getCurrentDate(char* buf, size_t len) {
+    struct tm timeinfo;
+    getLocalTime(&timeinfo);
+    strftime(buf, len, "%d-%m-%Y", &timeinfo); // formats to "15-06-2025"
+}
+
 // ─── Arduino entry points ──────────────────────────────────────────────────
 void setup() {
     Serial.begin(115200); delay(200);
@@ -78,6 +86,9 @@ void loop() {
         if (!warmedUp) { delay(1500); warmedUp = true; }
 
         sensor.read();
+        char date[12];
+        getCurrentDate(date, sizeof(date));
+        prayTimes.pullPrayTime(String(date)); // update prayer times once per day
         oled.showReadings(
             sensor.temp,
             sensor.humidity,

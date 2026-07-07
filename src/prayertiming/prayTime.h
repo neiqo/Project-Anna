@@ -14,12 +14,28 @@ struct PrayTimes {
 
 };
 
+struct currentPrayTimeBlock {
+    String prayTime;
+    String prayName;
+    String nextPrayTime;
+    String nextPrayName;
+    String timeUntilNextPray;
+    String currTime;
+    String date;
+    bool valid = false;
+    
+};
+
 class prayTime {
     public:
         void begin();
         void pullPrayTime(String curr_date);
-        PrayTimes currentPrayTimes;
+        void updateCurrentPrayTimeBlock(const PrayTimes& prayTimes, const String& curr_time, const String& curr_date);
+        PrayTimes prayTimes;
+        currentPrayTimeBlock currentPrayTime;
+        
 
     private:
         String _lastFetchedDate = "";
-};
+        String _lastPrayName = "";
+};      

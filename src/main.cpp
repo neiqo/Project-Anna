@@ -10,6 +10,9 @@
 #include "server/WebServer.h"
 #include "display/OLEDDisplay.h"
 #include "prayertiming/prayTime.h"
+#include "buzzer/Buzzer.h"
+
+Buzzer buzzer;
 
 prayTime prayTimes;
 OLEDDisplay oled(prayTimes);
@@ -61,6 +64,12 @@ void getCurrentDate(char* buf, size_t len) {
     strftime(buf, len, "%d-%m-%Y", &timeinfo); // formats to "15-06-2025"
 }
 
+void getCurrentTime(char* buf, size_t len) {
+    struct tm timeinfo;
+    getLocalTime(&timeinfo);
+    strftime(buf, len, "%H:%M", &timeinfo); // formats to "14:32"
+}
+
 // ─── Arduino entry points ──────────────────────────────────────────────────
 void setup() {
     Serial.begin(115200); delay(200);
@@ -70,12 +79,15 @@ void setup() {
     sensor.begin();
     history.begin();
     oled.begin();
-
     connectWiFi();
     setupMDNS();
     syncTime();
+    buzzer.begin();
+
 
     server.begin();
+
+    buzzer.songOfStorms();
 }
 
 void loop() {
@@ -86,9 +98,15 @@ void loop() {
         if (!warmedUp) { delay(1500); warmedUp = true; }
 
         sensor.read();
+        
         char date[12];
+        char timeStr[6];
         getCurrentDate(date, sizeof(date));
-        prayTimes.pullPrayTime(String(date)); // update prayer times once per day
+        getCurrentTime(timeStr, sizeof(timeStr));
+
+        prayTimes.pullPrayTime(String(date));
+        prayTimes.updateCurrentPrayTimeBlock(prayTimes.prayTimes, String(timeStr), String(date));
+
         oled.showReadings(
             sensor.temp,
             sensor.humidity,
